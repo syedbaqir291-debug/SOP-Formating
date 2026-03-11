@@ -170,21 +170,17 @@ if uploaded_file:
             force_font_everywhere(doc, force_font_name)
         st.success("Font applied everywhere successfully!")
 
-        # Save & download
-        original_filename = uploaded_file.name
-        name, ext = os.path.splitext(original_filename)
-        new_filename = f"{name}_OMAC_{force_font_name}.docx"
-
-        buffer = io.BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
+         # Save & download
+         buffer = io.BytesIO()
+         doc.save(buffer)
+         buffer.seek(0)
 
         st.download_button(
-            "⬇ Download Font-Fixed Document",
-            data=buffer,
-            file_name=new_filename,
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+        "⬇ Download Font-Fixed Document",
+        data=buffer,
+        file_name=new_filename,
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
 # ---------------- FOOTER ----------------
 st.markdown('<div class="footer">OMAC Developer</div>', unsafe_allow_html=True)
