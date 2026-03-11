@@ -3,9 +3,9 @@ from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
+import os
 
 # ---------------- PAGE CONFIG ----------------
-
 st.set_page_config(
     page_title="SOP Formatter by S M Baqir",
     page_icon="📄",
@@ -13,7 +13,6 @@ st.set_page_config(
 )
 
 # ---------------- PREMIUM CSS ----------------
-
 st.markdown("""
 <style>
 .main-title{
@@ -54,12 +53,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
-
 st.markdown('<div class="main-title">SOP Formatter</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Professional SOP Formatting Tool — by S M Baqir</div>', unsafe_allow_html=True)
 
 # ---------------- SIDEBAR SETTINGS ----------------
-
 st.sidebar.title("⚙ Formatting Settings")
 
 st.sidebar.subheader("1️⃣ First Page Settings")
@@ -81,18 +78,14 @@ st.sidebar.info(
 )
 
 # ---------------- MAIN CONTENT ----------------
-
 st.markdown('<div class="card">', unsafe_allow_html=True)
-
 uploaded_file = st.file_uploader(
     "Upload SOP Document (.docx)",
     type=["docx"]
 )
-
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- HELPER FUNCTION ----------------
-
+# ---------------- HELPER FUNCTIONS ----------------
 def sentence_case(text):
     if not text:
         return text
@@ -108,7 +101,6 @@ def get_alignment(alignment_name):
     return mapping.get(alignment_name, WD_ALIGN_PARAGRAPH.LEFT)
 
 # ---------------- FORMAT FUNCTION ----------------
-
 def format_document(file):
     doc = Document(file)
 
@@ -158,7 +150,6 @@ def format_document(file):
     return buffer
 
 # ---------------- PROCESS BUTTON ----------------
-
 if uploaded_file:
     if st.button("✨ Format SOP Document"):
         with st.spinner("Formatting document..."):
@@ -166,15 +157,19 @@ if uploaded_file:
 
         st.success("Document formatted successfully!")
 
+        # Keep original filename and append _OMAC
+        original_filename = uploaded_file.name
+        name, ext = os.path.splitext(original_filename)
+        new_filename = f"{name}_OMAC{ext}"
+
         st.download_button(
             "⬇ Download Formatted SOP",
             data=output,
-            file_name="Formatted_SOP.docx",
+            file_name=new_filename,
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
 # ---------------- FOOTER ----------------
-
 st.markdown(
     '<div class="footer">OMAC Developer</div>',
     unsafe_allow_html=True
