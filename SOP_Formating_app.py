@@ -9,110 +9,168 @@ import io
 st.set_page_config(
     page_title="SOP Formatter by S M Baqir",
     page_icon="📄",
-    layout="centered"
+    layout="wide"
 )
 
-# ---------------- STYLE ----------------
+# ---------------- PREMIUM CSS ----------------
 
 st.markdown("""
 <style>
-.title{
-    font-size:36px;
+
+.main-title{
+    font-size:40px;
     font-weight:700;
-    text-align:center;
     color:#1f4e79;
 }
+
 .subtitle{
-    text-align:center;
     color:gray;
-    margin-bottom:30px;
+    margin-bottom:25px;
 }
+
+.block-container{
+    padding-top:2rem;
+}
+
+.stButton>button{
+    background-color:#1f4e79;
+    color:white;
+    font-weight:600;
+    border-radius:8px;
+    height:45px;
+}
+
 .footer{
     position:fixed;
     bottom:10px;
-    width:100%;
+    left:0;
+    right:0;
     text-align:center;
     color:gray;
+    font-size:14px;
 }
+
+.card{
+    background-color:#f9fbfd;
+    padding:20px;
+    border-radius:10px;
+    border:1px solid #e6eef5;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
 
-st.markdown('<p class="title">SOP Formatter</p>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">by S M Baqir</p>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">SOP Formatter</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Professional SOP Formatting Tool — by S M Baqir</div>', unsafe_allow_html=True)
 
-# ---------------- STEP 1 : UPLOAD ----------------
+# ---------------- SIDEBAR SETTINGS ----------------
 
-uploaded_file = st.file_uploader("📂 Upload SOP Document (.docx)", type=["docx"])
+st.sidebar.title("⚙ Formatting Settings")
 
-# ---------------- STEP 2 : SHOW OPTIONS AFTER UPLOAD ----------------
+first_page_size = st.sidebar.number_input(
+    "First Page Font Size",
+    value=16
+)
+
+other_page_size = st.sidebar.number_input(
+    "2nd Page Onwards Font Size",
+    value=11
+)
+
+line_spacing = st.sidebar.slider(
+    "Line Spacing",
+    1.0,
+    3.0,
+    1.5
+)
+
+body_font = st.sidebar.text_input(
+    "Body Font",
+    value="Arial"
+)
+
+st.sidebar.info(
+    "Bold text will be treated as headings and converted to Sentence Case from page 2 onward."
+)
+
+# ---------------- MAIN CONTENT ----------------
+
+st.markdown('<div class="card">', unsafe_allow_html=True)
+
+uploaded_file = st.file_uploader(
+    "Upload SOP Document (.docx)",
+    type=["docx"]
+)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------- TEXT FUNCTION ----------------
+
+def sentence_case(text):
+    if not text:
+        return text
+    return text[0].upper() + text[1:].lower()
+
+# ---------------- FORMAT FUNCTION ----------------
+
+def format_document(file):
+
+    doc = Document(file)
+
+    for i, para in enumerate(doc.paragraphs):
+
+        para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        para.paragraph_format.line_spacing = line_spacing
+
+        for run in para.runs:
+
+            run.font.name = body_font
+
+            if i < 10:
+                run.font.size = Pt(first_page_size)
+
+            else:
+                run.font.size = Pt(other_page_size)
+
+                if run.bold:
+                    run.text = sentence_case(run.text)
+
+    # tables
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+
+                    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    para.paragraph_format.line_spacing = line_spacing
+
+                    for run in para.runs:
+
+                        run.font.name = body_font
+                        run.font.size = Pt(other_page_size)
+
+                        if run.bold:
+                            run.text = sentence_case(run.text)
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+
+    return buffer
+
+# ---------------- PROCESS BUTTON ----------------
 
 if uploaded_file:
 
-    st.subheader("Formatting Settings")
-
-    first_page_size = st.number_input(
-        "First Page Font Size",
-        min_value=8,
-        max_value=40,
-        value=16
-    )
-
-    other_page_size = st.number_input(
-        "2nd Page Onwards Font Size",
-        min_value=8,
-        max_value=30,
-        value=11
-    )
-
-    line_spacing = st.slider(
-        "Line Spacing",
-        1.0,
-        3.0,
-        1.5
-    )
-
-    # ---------------- PROCESS FUNCTION ----------------
-
-    def format_document(file):
-
-        doc = Document(file)
-
-        for i, para in enumerate(doc.paragraphs):
-
-            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            para.paragraph_format.line_spacing = line_spacing
-
-            for run in para.runs:
-
-                if i < 10:
-                    run.font.size = Pt(first_page_size)
-                else:
-                    run.font.size = Pt(other_page_size)
-
-        # format tables
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for para in cell.paragraphs:
-                        para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                        para.paragraph_format.line_spacing = line_spacing
-
-                        for run in para.runs:
-                            run.font.size = Pt(other_page_size)
-
-        buffer = io.BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-
-        return buffer
-
-    # ---------------- STEP 3 : PROCESS ----------------
+    st.write("")
 
     if st.button("✨ Format SOP Document"):
 
-        output = format_document(uploaded_file)
+        with st.spinner("Formatting document..."):
+
+            output = format_document(uploaded_file)
 
         st.success("Document formatted successfully!")
 
