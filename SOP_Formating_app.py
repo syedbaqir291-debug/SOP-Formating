@@ -67,20 +67,43 @@ def get_alignment(alignment_name):
     return mapping.get(alignment_name, WD_ALIGN_PARAGRAPH.LEFT)
 
 def set_font(run, font_name, font_size_pt):
-    """Apply font to run, including bullets / numbering"""
+    """Force font including bullets / numbering"""
     run.font.name = font_name
     run.font.size = Pt(font_size_pt)
     r = run._element
     r.rPr.rFonts.set(qn('w:eastAsia'), font_name)
 
+def force_font_everywhere(doc, font_name="Arial"):
+    """Apply font to all text, headers, footers, bullets"""
+    for para in doc.paragraphs:
+        for run in para.runs:
+            set_font(run, font_name, run.font.size.pt if run.font.size else 11)
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    for run in para.runs:
+                        set_font(run, font_name, run.font.size.pt if run.font.size else 11)
+
+    for section in doc.sections:
+        if section.header:
+            for para in section.header.paragraphs:
+                for run in para.runs:
+                    set_font(run, font_name, run.font.size.pt if run.font.size else 11)
+        if section.footer:
+            for para in section.footer.paragraphs:
+                for run in para.runs:
+                    set_font(run, font_name, run.font.size.pt if run.font.size else 11)
+
 # ---------------- FORMAT FUNCTION ----------------
 def format_document(file):
     doc = Document(file)
 
-    # ---------------- PARAGRAPHS ----------------
     for i, para in enumerate(doc.paragraphs):
-        # Determine page (approx)
-        if i < 10:
+
+        # ---------------- FIRST PAGE ----------------
+        if i < 10:  # approximate first page
             font = first_page_font
             size = first_page_font_size
             para.alignment = get_alignment(first_page_alignment_option)
@@ -93,7 +116,6 @@ def format_document(file):
 
         for run in para.runs:
             set_font(run, font, size)
-            # Heading conversion for 2nd page
             if i >= 10 and run.bold:
                 run.text = sentence_case(run.text)
 
@@ -116,30 +138,13 @@ def format_document(file):
                         if i >= 10 and run.bold:
                             run.text = sentence_case(run.text)
 
-    # ---------------- HEADERS & FOOTERS ----------------
-    for section in doc.sections:
-        # Header
-        if section.header:
-            for para in section.header.paragraphs:
-                for run in para.runs:
-                    set_font(run, first_page_font, first_page_font_size)
-        # Footer
-        if section.footer:
-            for para in section.footer.paragraphs:
-                for run in para.runs:
-                    set_font(run, first_page_font, first_page_font_size)
-
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+    return doc
 
 # ---------------- PROCESS BUTTON ----------------
 if uploaded_file:
     if st.button("✨ Format SOP Document"):
         with st.spinner("Formatting document..."):
-            output = format_document(uploaded_file)
-
+            doc = format_document(uploaded_file)
         st.success("Document formatted successfully!")
 
         # Keep original filename and append _OMAC
@@ -149,7 +154,34 @@ if uploaded_file:
 
         st.download_button(
             "⬇ Download Formatted SOP",
-            data=output,
+            data=io.BytesIO(open(new_filename, "wb").write(doc.save(io.BytesIO()))),
+            file_name=new_filename,
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    # ---------------- FORCE FONT BUTTON ----------------
+    st.markdown("---")
+    st.subheader("Force Font Everywhere (Headers, Footers, Bullets, All Text)")
+
+    force_font_name = st.text_input("Font to apply everywhere", value="Arial")
+
+    if st.button("🖋 Apply Font to Entire Document"):
+        with st.spinner("Applying font to all text, bullets, headers, and footers..."):
+            force_font_everywhere(doc, force_font_name)
+        st.success("Font applied everywhere successfully!")
+
+        # Save & download
+        original_filename = uploaded_file.name
+        name, ext = os.path.splitext(original_filename)
+        new_filename = f"{name}_OMAC_{force_font_name}.docx"
+
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        st.download_button(
+            "⬇ Download Font-Fixed Document",
+            data=buffer,
             file_name=new_filename,
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
